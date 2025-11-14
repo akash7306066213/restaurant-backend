@@ -26,43 +26,58 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http.csrf(csrf -> csrf.disable())
-            .cors(cors -> {}) // Enable CORS
+            .cors(cors -> {}) // enable CORS
             .authorizeHttpRequests(auth -> auth
-                // Public routes
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/menu/**").permitAll()
 
-                // Admin-only routes
+                // ==========================================
+                // 🔓 PUBLIC ROUTES
+                // ==========================================
+                .requestMatchers("/api/auth/**").permitAll()    // login/register
+                .requestMatchers("/api/menu/**").permitAll()     // show menu
+                .requestMatchers("/api/orders/user/**").permitAll() // user fetching their orders (temporary)
+
+                // ==========================================
+                // 🔐 ADMIN ROUTES
+                // ==========================================
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                // Authenticated user routes (cart, orders)
+                // ==========================================
+                // 🔐 AUTHENTICATED USER ROUTES
+                // ==========================================
                 .requestMatchers("/api/cart/**").authenticated()
-                .requestMatchers("/api/order/**").authenticated()
+                .requestMatchers("/api/orders/**").authenticated()
 
-                // Everything else must be authenticated
+                // ==========================================
+                // 🔐 EVERYTHING ELSE
+                // ==========================================
                 .anyRequest().authenticated()
             );
 
-        // Add JWT filter before Spring's built-in auth filter
+        // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // ✅ Proper CORS configuration for React frontend (localhost:5173)
+    // ====================================================
+    // CORS: Allow React frontend (localhost:5173)
+    // ====================================================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
         config.setAllowedOrigins(List.of(
-            "http://localhost:5173",  // your React dev server
+            "http://localhost:5173",
             "http://127.0.0.1:5173"
         ));
+
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 
